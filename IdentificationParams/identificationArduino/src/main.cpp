@@ -282,7 +282,7 @@ void GestionEtat(Etat state){
     break;
 
     case oscillation:// permet d'osciller pour pouvoir passer l'obstacle
-
+      while(oscille() != true);
     break;
 
     case stabilisation: // Permet de stabiliser le pendule au dessus de l'objet/bac de dépot
