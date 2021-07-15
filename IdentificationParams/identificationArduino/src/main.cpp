@@ -29,6 +29,7 @@ MegaServo servo_;                   // objet servomoteur
 VexQuadEncoder vexEncoder_;         // objet encodeur vex
 IMU9DOF imu_;                       // objet imu
 PID pid_;                           // objet PID
+MotorControl motor_; 
 
 volatile bool shouldSend_ = false;  // drapeau prêt à envoyer un message
 volatile bool shouldRead_ = false;  // drapeau prêt à lire un message
@@ -54,6 +55,8 @@ void endPulse();
 void sendMsg(); 
 void readMsg();
 void serialEvent();
+int Angle();
+bool oscille();
 
 // Fonctions pour le PID
 double PIDmeasurement();
@@ -70,6 +73,8 @@ void setup() {
   // attache de l'interruption pour encodeur vex
   //attachInterrupt(vexEncoder_.getPinInt(), []{vexEncoder_.isr();}, FALLING);
   
+  motor_.init(5,30);
+
   //Initialisation des pins
   pinMode(MAGPIN,OUTPUT);
   // Chronometre envoie message
@@ -109,6 +114,12 @@ void loop() {
   
   // mise à jour du PID
   pid_.run();
+
+  if(oscille()==true)
+  {
+    motor_.setSpeed(-0.5);
+    delay(2000);
+  }
 }
 
 /*---------------------------Definition de fonctions ------------------------*/
@@ -259,4 +270,47 @@ void GestionEtat(Etat state){
 
   }
 
+}
+int Angle(){
+  // capteur
+  int angle = 0;
+  int val = 0;
+  val=analogRead(A5);
+  angle = (val-560)*180/900;
+  Serial.println("Angle : " + String(angle));
+  /*Serial.print(val);
+  Serial.print("  ");
+  Serial.print(angle);
+  Serial.println(" deg");*/
+  return angle;
+}
+
+bool oscille()
+{
+  int angle=0;
+ for(int i = 0; i<20; i++){
+    motor_.setSpeed(0.35);
+    delay(20);
+    angle=Angle();
+    if(angle < -65){return true;}
+  }
+  for(int i = 0; i<10; i++){
+    motor_.setSpeed(0.0);
+    delay(20);
+    angle=Angle();
+    if(angle < -65){return true;}
+  }
+  for(int i = 0; i<20; i++){
+    motor_.setSpeed(-0.35);
+    delay(20);
+    angle=Angle();
+    if(angle < -65){return true;}
+  }
+  for(int i = 0; i<10; i++){
+    motor_.setSpeed(0.0);
+    delay(20);
+    angle=Angle();
+    if(angle < -65){return true;}
+  }  
+  return false;
 }
