@@ -246,6 +246,7 @@ void GestionEtat(Etat state){
 
     case depot:
       digitalWrite(MAGPIN,LOW);
+      delay(500);
     break;
 
     case oscillation:
