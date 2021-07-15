@@ -9,7 +9,7 @@
 #include <LibS3GRO.h>
 #include <ArduinoJson.h>
 #include <libExample.h> // Vos propres librairies
-/*---------------it --------------- Constantes ---------------------------------*/
+/*------------------------------ Constantes ---------------------------------*/
 
 #define BAUD            115200      // Frequence de transmission serielle
 #define UPDATE_PERIODE  100         // Periode (ms) d'envoie d'etat general
@@ -20,6 +20,8 @@
 #define PASPARTOUR      64          // Nombre de pas par tour du moteur
 #define RAPPORTVITESSE  50          // Rapport de vitesse du moteur
 
+// enum pour les étapes du séquencement
+enum Etat { restart, approchePrise, approcheDepot, prise, oscillation, stabilisation, depot, passageObstacle};
 /*---------------------------- variables globales ---------------------------*/
 
 ArduinoX AX_;                       // objet arduinoX
@@ -66,8 +68,10 @@ void setup() {
   imu_.init();                      // initialisation de la centrale inertielle
   vexEncoder_.init(2,3);            // initialisation de l'encodeur VEX
   // attache de l'interruption pour encodeur vex
-  attachInterrupt(vexEncoder_.getPinInt(), []{vexEncoder_.isr();}, FALLING);
+  //attachInterrupt(vexEncoder_.getPinInt(), []{vexEncoder_.isr();}, FALLING);
   
+  //Initialisation des pins
+  pinMode(MAGPIN,OUTPUT);
   // Chronometre envoie message
   timerSendMsg_.setDelay(UPDATE_PERIODE);
   timerSendMsg_.setCallback(timerCallback);
@@ -214,4 +218,44 @@ void PIDcommand(double cmd){
 }
 void PIDgoalReached(){
   // To do
+}
+
+//Fonction pour la gestion d'état
+void GestionEtat(Etat state){
+  switch (state) {
+
+    case restart:
+
+    break;
+
+    case approchePrise:
+
+    break;
+
+    case approcheDepot:
+
+    break;
+
+    case passageObstacle:
+
+    break;
+
+    case prise:
+      digitalWrite(MAGPIN,HIGH);
+    break;
+
+    case depot:
+      digitalWrite(MAGPIN,LOW);
+    break;
+
+    case oscillation:
+
+    break;
+
+    case stabilisation:
+
+    break;
+
+  }
+
 }
