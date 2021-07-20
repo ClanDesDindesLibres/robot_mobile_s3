@@ -35,6 +35,7 @@ LS7366Counter encoder_;
  
 double t1;
 double d1; 
+double cur_pos;
 volatile bool shouldSend_ = false;  // drapeau prêt à envoyer un message
 volatile bool shouldRead_ = false;  // drapeau prêt à lire un message
 volatile bool shouldPulse_ = false; // drapeau pour effectuer un pulse
@@ -126,8 +127,8 @@ void loop() {
   
   // mise à jour du PID
   pid_.run();
-  motor_.setSpeed(0.4);
-  
+  //motor_.setSpeed(-0.4);
+  //sendMsg();
   
 }
 
@@ -180,6 +181,10 @@ void sendMsg(){
   doc["gyroZ"] = imu_.getGyroZ();
   doc["isGoal"] = pid_.isAtGoal();
   doc["actualTime"] = pid_.getActualDt();
+  doc["id"] = 0;
+  doc["cur_vel"] = PIDmeasurement();
+  doc["cur_pos"] = cur_pos;
+  doc["cmd"] = 0;
 
   // Serialisation
   serializeJson(doc, Serial);
@@ -249,8 +254,8 @@ double PIDmeasurement(){
   //ÉCRASE
   t1= millis();
   d1 = AX_.readEncoder(0);
+  cur_pos = (((AX_.readEncoder(0)))/(2400))*PI*.15;
   return vitesse;
-  
 }
 void PIDcommand(double cmd){
 
@@ -258,6 +263,7 @@ void PIDcommand(double cmd){
   memoireVitesse += cmd;
 
   AX_.setMotorPWM(0, memoireVitesse);
+
 }
 void PIDgoalReached(){
   // To do
