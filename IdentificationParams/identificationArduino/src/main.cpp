@@ -80,11 +80,11 @@ void setup() {
   // attache de l'interruption pour encodeur vex
   //attachInterrupt(vexEncoder_.getPinInt(), []{vexEncoder_.isr();}, FALLING);
   
-  motor_.init(5,30);
+  motor_.init(5,30);  //initialisation des pins moteur
 
   //Initialisation des pins
   pinMode(MAGPIN,OUTPUT);      //Initialisation de la pin de l'électroaimant en sortie
-  pinMode(LIMITSWITCH,INPUT);  //Initialisation de la pin de l'électroaimant en entrée
+  pinMode(LIMITSWITCH,INPUT);  //Initialisation de la pin de la limite switch en entrée
 
 
   // Chronometre envoie message
@@ -118,7 +118,7 @@ void loop() {
     startPulse();
   }
 
-  //GestionEtat(PIetat);     //Recoit l'état du RaspberryPi pour gérer l'étape du séquencement//*******************************
+  //GestionEtat(PIetat);     //Gestiondes états pour le séquencement
 
   // mise a jour des chronometres
   timerSendMsg_.update();
@@ -307,14 +307,9 @@ void GestionEtat(Etat state){
       delay(500);//Vérifier le délai de relachement du sapin
     break;
 
-<<<<<<< HEAD
     case oscillation:
     oscille();
 
-=======
-    case oscillation:// permet d'osciller pour pouvoir passer l'obstacle
-      while(oscille() != true);
->>>>>>> 0efa5b495646db3e7342077a411e6933c1b00097
     break;
 
     case stabilisation: // Permet de stabiliser le pendule au dessus de l'objet/bac de dépot
