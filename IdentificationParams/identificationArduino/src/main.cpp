@@ -16,6 +16,7 @@
 
 #define MAGPIN          32          // Port numerique pour electroaimant
 #define POTPIN          A5          // Port analogique pour le potentiometre
+#define LIMITSWITCH     15          // Port numérique pour la limite switch
 
 #define PASPARTOUR      64          // Nombre de pas par tour du moteur
 #define RAPPORTVITESSE  50          // Rapport de vitesse du moteur
@@ -82,7 +83,10 @@ void setup() {
   motor_.init(5,30);
 
   //Initialisation des pins
-  pinMode(MAGPIN,OUTPUT);
+  pinMode(MAGPIN,OUTPUT);      //Initialisation de la pin de l'électroaimant en sortie
+  pinMode(LIMITSWITCH,INPUT);  //Initialisation de la pin de l'électroaimant en entrée
+
+
   // Chronometre envoie message
   timerSendMsg_.setDelay(UPDATE_PERIODE);
   timerSendMsg_.setCallback(timerCallback);
@@ -113,6 +117,8 @@ void loop() {
   if(shouldPulse_){
     startPulse();
   }
+
+  //GestionEtat(PIetat);     //Recoit l'état du RaspberryPi pour gérer l'étape du séquencement//*******************************
 
   // mise a jour des chronometres
   timerSendMsg_.update();
@@ -261,37 +267,57 @@ void PIDgoalReached(){
 void GestionEtat(Etat state){
   switch (state) {
 
-    case restart:
-
+    case restart: // Retourne au début du rail
+      //while(digitalRead(LIMITSWITCH) != true) //Faire la gestion dans le PI
+        //Faite reculer le robot à une vitesse pas trop vite vers la fin
+        if(AX_.readEncoder(0) <= 500){ //Vérifier la distance pour l'encodeur et pour le ID 
+          AX_.setMotorPWM(0,0.3);  //Réduire la vitesse
+        }
+        if(digitalRead(LIMITSWITCH) == true){ // Reset la valeur de l'encodeur quand rendue au bout du rail
+          AX_.resetEncoder(0);
+        }
+      
     break;
 
-    case approchePrise:
-
+    case approchePrise: // Approche au dessus du sapin
+      //Valeur de distance pour la prise du sapin
+      if(AX_.readEncoder(0) == 500){ // Arrête à la distance du sapin
+        AX_.setMotorPWM(0,0);  //Arrête le robot
+      }
     break;
 
-    case approcheDepot:
-
+    case approcheDepot: // Approche au dessus du bac de dépot
+      //Valeur de distance pour la prise du sapin
+      if(AX_.readEncoder(0) == 500){ // Arrête à la distance du bac
+        AX_.setMotorPWM(0,0);  //Arrête le robot
+      }
     break;
 
-    case passageObstacle:
+    case passageObstacle: // Passe l'obstacle d'un coup
 
     break;
 
     case prise:
       digitalWrite(MAGPIN,HIGH);
+      delay(500); // vérifier le délai de prise du sapin (si besoin)
     break;
 
     case depot:
       digitalWrite(MAGPIN,LOW);
-      delay(500);
+      delay(500);//Vérifier le délai de relachement du sapin
     break;
 
+<<<<<<< HEAD
     case oscillation:
     oscille();
 
+=======
+    case oscillation:// permet d'osciller pour pouvoir passer l'obstacle
+      while(oscille() != true);
+>>>>>>> 0efa5b495646db3e7342077a411e6933c1b00097
     break;
 
-    case stabilisation:
+    case stabilisation: // Permet de stabiliser le pendule au dessus de l'objet/bac de dépot
 
     break;
 
