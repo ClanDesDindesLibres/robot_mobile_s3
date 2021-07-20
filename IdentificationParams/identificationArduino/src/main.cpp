@@ -30,7 +30,10 @@ VexQuadEncoder vexEncoder_;         // objet encodeur vex
 IMU9DOF imu_;                       // objet imu
 PID pid_;                           // objet PID
 MotorControl motor_; 
-
+LS7366Counter encoder_;
+ 
+double t1;
+double d1; 
 volatile bool shouldSend_ = false;  // drapeau prêt à envoyer un message
 volatile bool shouldRead_ = false;  // drapeau prêt à lire un message
 volatile bool shouldPulse_ = false; // drapeau pour effectuer un pulse
@@ -57,6 +60,7 @@ void readMsg();
 void serialEvent();
 int Angle();
 bool oscille();
+void GestionEtat(Etat state);
 
 // Fonctions pour le PID
 double PIDmeasurement();
@@ -70,6 +74,8 @@ void setup() {
   AX_.init();                       // initialisation de la carte ArduinoX 
   imu_.init();                      // initialisation de la centrale inertielle
   vexEncoder_.init(2,3);            // initialisation de l'encodeur VEX
+  t1 =0;
+  d1= AX_.readEncoder(0);
   // attache de l'interruption pour encodeur vex
   //attachInterrupt(vexEncoder_.getPinInt(), []{vexEncoder_.isr();}, FALLING);
   
@@ -114,13 +120,11 @@ void loop() {
   
   // mise à jour du PID
   pid_.run();
-
-  if(oscille()==true)
-  {
-    motor_.setSpeed(-0.5);
-    delay(2000);
-  }
+  motor_.setSpeed(0.4);
+  
+  
 }
+
 
 /*---------------------------Definition de fonctions ------------------------*/
 
@@ -222,10 +226,32 @@ void readMsg(){
 
 // Fonctions pour le PID
 double PIDmeasurement(){
-  // To do
+  double vitesse; 
+  double temps = (millis()-t1)/1000;
+  double distance = (((AX_.readEncoder(0))-d1)/(2400))*PI*.15;
+  Serial.println("distance");
+  Serial.println(distance);
+  Serial.println("temps initial: ");
+  Serial.println(t1/1000);
+  Serial.println("temps final: ");
+  Serial.println(millis()/1000);
+  Serial.println("temps de l'intervalle :");
+  Serial.println(temps); 
+  Serial.println("vitesse : ");
+  vitesse = distance/temps;
+  Serial.println(vitesse);
+  //ÉCRASE
+  t1= millis();
+  d1 = AX_.readEncoder(0);
+  return vitesse;
+  
 }
 void PIDcommand(double cmd){
-  // To do
+
+  static double memoireVitesse = 0;
+  memoireVitesse += cmd;
+
+  AX_.setMotorPWM(0, memoireVitesse);
 }
 void PIDgoalReached(){
   // To do
@@ -261,6 +287,7 @@ void GestionEtat(Etat state){
     break;
 
     case oscillation:
+    oscille();
 
     break;
 
@@ -289,7 +316,7 @@ bool oscille()
 {
   int angle=0;
  for(int i = 0; i<20; i++){
-    motor_.setSpeed(0.35);
+    motor_.setSpeed(0.4);
     delay(20);
     angle=Angle();
     if(angle < -65){return true;}
@@ -301,7 +328,7 @@ bool oscille()
     if(angle < -65){return true;}
   }
   for(int i = 0; i<20; i++){
-    motor_.setSpeed(-0.35);
+    motor_.setSpeed(-0.4);
     delay(20);
     angle=Angle();
     if(angle < -65){return true;}
