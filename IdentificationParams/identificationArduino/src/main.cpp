@@ -36,6 +36,7 @@ LS7366Counter encoder_;
 double t1;
 double d1; 
 double cur_pos;
+double commande = 0;
 volatile bool shouldSend_ = false;  // drapeau prêt à envoyer un message
 volatile bool shouldRead_ = false;  // drapeau prêt à lire un message
 volatile bool shouldPulse_ = false; // drapeau pour effectuer un pulse
@@ -127,9 +128,6 @@ void loop() {
   
   // mise à jour du PID
   pid_.run();
-  //motor_.setSpeed(-0.4);
-  //sendMsg();
-  
 }
 
 
@@ -181,10 +179,9 @@ void sendMsg(){
   doc["gyroZ"] = imu_.getGyroZ();
   doc["isGoal"] = pid_.isAtGoal();
   doc["actualTime"] = pid_.getActualDt();
-  doc["id"] = 0;
   doc["cur_vel"] = PIDmeasurement();
   doc["cur_pos"] = cur_pos;
-  doc["cmd"] = 0;
+  doc["cmd"] = commande;
 
   // Serialisation
   serializeJson(doc, Serial);
@@ -240,7 +237,7 @@ double PIDmeasurement(){
   double vitesse; 
   double temps = (millis()-t1)/1000;
   double distance = (((AX_.readEncoder(0))-d1)/(2400))*PI*.15;
-  Serial.println("distance");
+  /*Serial.println("distance");
   Serial.println(distance);
   Serial.println("temps initial: ");
   Serial.println(t1/1000);
@@ -248,9 +245,8 @@ double PIDmeasurement(){
   Serial.println(millis()/1000);
   Serial.println("temps de l'intervalle :");
   Serial.println(temps); 
-  Serial.println("vitesse : ");
+  Serial.println("vitesse : ");*/
   vitesse = distance/temps;
-  Serial.println(vitesse);
   //ÉCRASE
   t1= millis();
   d1 = AX_.readEncoder(0);
@@ -258,12 +254,10 @@ double PIDmeasurement(){
   return vitesse;
 }
 void PIDcommand(double cmd){
-
   static double memoireVitesse = 0;
   memoireVitesse += cmd;
-
   AX_.setMotorPWM(0, memoireVitesse);
-
+  commande = cmd;
 }
 void PIDgoalReached(){
   // To do
