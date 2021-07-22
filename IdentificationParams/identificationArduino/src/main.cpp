@@ -161,8 +161,7 @@ void loop() {
   timerSendMsg_.update();
   timerPulse_.update();
   
-  // mise à jour du PID
-<<<<<<< HEAD
+  // mise à jour du PI
   pid_pos_.run();
 
 //Fonction pour la gestion d'état
@@ -185,12 +184,15 @@ void loop() {
     case avance: // Approche au dessus du sapin
       //Valeur de distance pour la prise du sapin
       //Serial.print("approcheprise");
-      pid_pos_.setGoal(0.5);
+      
+      //pid_pos_.setGoal(0.5);
       
        if(GOAL)
        {
          Serial.println("changement etat 1 ");
          State++;
+                pid_pos_.enable();
+
        }
       GOAL = false;
     break;
@@ -198,13 +200,14 @@ void loop() {
     case recule: // Approche au dessus du sapin
       //Valeur de distance pour la prise du sapin
       //Serial.print("approcheprise");
-      pid_pos_.setGoal(0.2);
-      Serial.println("GETGOAL STATS: ");
+      pid_pos_.setGoal(0.1);
       Serial.print(pid_pos_.getGoal());
       
       if(GOAL)
       {
          Serial.println("changement etat 2 ");
+                pid_pos_.enable();
+
         State--;
       }
       GOAL = false;
@@ -246,12 +249,6 @@ void loop() {
     break;
 */
   }
-=======
-  GetAngle();
-  pid_.run();
-  AGpid_.run();
->>>>>>> 5812513c1cd704c9ef0e63513a1e89a026a2dedf
-
 }
 
 
@@ -381,14 +378,14 @@ double PIDmeasurement(){
 void PIDcommand(double cmd){
   GOAL = false;
   commande = cmd;
-  AX_.setMotorPWM(0, cmd/6);
+//  AX_.setMotorPWM(0, cmd/6);
 // //OSCILLATION
-//   if(pid_pos_.getGoal()>cur_pos){
-//     AX_.setMotorPWM(0, 0.2);
-//   }
-//   else if(pid_pos_.getGoal()<cur_pos){
-//     AX_.setMotorPWM(0, -0.2);
-//    }
+   if(pid_pos_.getGoal()>cur_pos){
+     AX_.setMotorPWM(0, 0.4);
+   }
+   else if(pid_pos_.getGoal()<cur_pos){
+     AX_.setMotorPWM(0, -0.4);
+    }
 }
 
 
