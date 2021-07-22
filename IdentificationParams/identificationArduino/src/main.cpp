@@ -26,14 +26,16 @@
 #define RAPPORTVITESSE  50          // Rapport de vitesse du moteur
 
 // enum pour les étapes du séquencement
-enum Etat { restart, approchePrise, approcheDepot, prise, oscillation, stabilisation, depot, passageObstacle};
+enum Etat { restart, avance, recule, prise, oscillation, stabilisation, depot, passageObstacle};
+int State = 1;
+  
 /*---------------------------- variables globales ---------------------------*/
 
 ArduinoX AX_;                       // objet arduinoX
 MegaServo servo_;                   // objet servomoteur
 VexQuadEncoder vexEncoder_;         // objet encodeur vex
 IMU9DOF imu_;                       // objet imu
-PID pid_;                           // objet PID
+PID pid_pos_;                           // objet PID
 PID AGpid_;                         // objet PId angle
 MotorControl motor_; 
 LS7366Counter encoder_;
@@ -47,6 +49,9 @@ volatile bool shouldSend_ = false;  // drapeau prêt à envoyer un message
 volatile bool shouldRead_ = false;  // drapeau prêt à lire un message
 volatile bool shouldPulse_ = false; // drapeau pour effectuer un pulse
 volatile bool isInPulse_ = false;   // drapeau pour effectuer un pulse
+
+bool test_pid;
+bool GOAL = false;
 
 SoftTimer timerSendMsg_;            // chronometre d'envoie de messages
 SoftTimer timerPulse_;              // chronometre pour la duree d'un pulse
@@ -66,6 +71,7 @@ void startPulse();
 void endPulse();
 void sendMsg(); 
 void readMsg();
+void SetUp_PID(PID, double);
 void serialEvent();
 int GetAngle();
 bool oscille();
@@ -93,6 +99,20 @@ void setup() {
   
   motor_.init(5,30);  //initialisation des pins moteur
 
+      while(digitalRead(LIMITSWITCH) == false)
+      {AX_.setMotorPWM(0, -0.15);}
+
+      if(digitalRead(LIMITSWITCH) == true){ // Reset la valeur de l'encodeur quand rendue au bout du rail
+        AX_.resetEncoder(0);
+          // Serial.print("Limit Switch : ");
+          // Serial.println(digitalRead(LIMITSWITCH));
+        AX_.setMotorPWM(0,0);}
+
+      //PRISE SAPIN
+      //digitalWrite(MAGPIN,HIGH);
+      delay(500); // vérifier le délai de prise du sapin (si besoin)
+
+
   //Initialisation des pins
   pinMode(MAGPIN,OUTPUT);      //Initialisation de la pin de l'électroaimant en sortie
   pinMode(LIMITSWITCH,INPUT);  //Initialisation de la pin de la limite switch en entrée
@@ -106,21 +126,26 @@ void setup() {
   // Chronometre duration pulse
   timerPulse_.setCallback(endPulse);
   
+  //
+  test_pid = false;
+
   // Initialisation du PID
-  pid_.setGains(0.25,0.1 ,0);
+  pid_pos_.setGains(7, 0.4 ,0.0004);
   // Attache des fonctions de retour
-  pid_.setMeasurementFunc(PIDmeasurement);
-  pid_.setCommandFunc(PIDcommand);
-  pid_.setAtGoalFunc(PIDgoalReached);
-  pid_.setEpsilon(0.001);
-  pid_.setPeriod(200);
+  pid_pos_.setMeasurementFunc(PIDmeasurement);
+  pid_pos_.setCommandFunc(PIDcommand);
+  pid_pos_.setAtGoalFunc(PIDgoalReached);
+  pid_pos_.setEpsilon(0.05);
+  pid_pos_.setPeriod(200);
+
+  pid_pos_.enable();
 }
 
 /* Boucle principale (infinie)*/
 void loop() {
 
   if(shouldRead_){
-    readMsg();
+    //readMsg();
   }
   if(shouldSend_){
     sendMsg();
@@ -129,15 +154,96 @@ void loop() {
     startPulse();
   }
 
-  GestionEtat(restart);     //Gestiondes états pour le séquencement
+  //GestionEtat(restart);     //Gestiondes états pour le séquencement
 
   // mise a jour des chronometres
   timerSendMsg_.update();
   timerPulse_.update();
   
   // mise à jour du PID
-  GetAngle();
-  pid_.run();
+  pid_pos_.run();
+
+//Fonction pour la gestion d'état
+  switch (State) 
+  {
+    case restart: // Retourne au début du rail
+      // AX_.setMotorPWM(0, -0.1);
+
+      // if(digitalRead(LIMITSWITCH) == true){ // Reset la valeur de l'encodeur quand rendue au bout du rail
+      //   AX_.resetEncoder(0);
+      //     // Serial.print("Limit Switch : ");
+      //     // Serial.println(digitalRead(LIMITSWITCH));
+      //   AX_.setMotorPWM(0,0);
+      //   State++;
+      // } 
+
+    break;
+ 
+
+    case avance: // Approche au dessus du sapin
+      //Valeur de distance pour la prise du sapin
+      //Serial.print("approcheprise");
+      pid_pos_.setGoal(0.5);
+      
+       if(GOAL)
+       {
+         Serial.println("changement etat 1 ");
+         State++;
+       }
+      GOAL = false;
+    break;
+
+    case recule: // Approche au dessus du sapin
+      //Valeur de distance pour la prise du sapin
+      //Serial.print("approcheprise");
+      pid_pos_.setGoal(0.2);
+      Serial.println("GETGOAL STATS: ");
+      Serial.print(pid_pos_.getGoal());
+      
+      if(GOAL)
+      {
+         Serial.println("changement etat 2 ");
+        State--;
+      }
+      GOAL = false;
+    break;
+       
+
+    // case approcheDepot: // Approche au dessus du bac de dépot
+    //   //Valeur de distance pour la prise du sapin
+    //   while(true){
+    //     Serial.println("WAZAAAAA");
+    //   }
+    //   if(AX_.readEncoder(0) == 500){ // Arrête à la distance du bac
+    //     AX_.setMotorPWM(0,0);  //Arrête le robot
+    //   }
+    // break;
+/*
+    case passageObstacle: // Passe l'obstacle d'un coup
+
+    break;
+
+    case prise:
+      digitalWrite(MAGPIN,HIGH);
+      delay(500); // vérifier le délai de prise du sapin (si besoin)
+    break;
+
+    case depot:
+      digitalWrite(MAGPIN,LOW);
+      delay(500);//Vérifier le délai de relachement du sapin
+    break;
+
+
+    case oscillation:
+    oscille();
+
+    break;
+
+    case stabilisation: // Permet de stabiliser le pendule au dessus de l'objet/bac de dépot
+
+    break;
+*/
+  }
 
 }
 
@@ -172,32 +278,32 @@ void sendMsg(){
   StaticJsonDocument<500> doc;
   // Elements du message
 
-  doc["time"] = millis();
-  doc["potVex"] = analogRead(POTPIN);
-  doc["encVex"] = vexEncoder_.getCount();
-  doc["goal"] = pid_.getGoal();
+ // doc["time"] = millis();
+  // doc["potVex"] = analogRead(POTPIN);
+  // doc["encVex"] = vexEncoder_.getCount();
+  doc["goal"] = pid_pos_.getGoal();
   doc["measurements"] = PIDmeasurement();
-  doc["voltage"] = AX_.getVoltage();
-  doc["current"] = AX_.getCurrent(); 
-  doc["pulsePWM"] = pulsePWM_;
-  doc["pulseTime"] = pulseTime_;
-  doc["inPulse"] = isInPulse_;
-  doc["accelX"] = imu_.getAccelX();
-  doc["accelY"] = imu_.getAccelY();
-  doc["accelZ"] = imu_.getAccelZ();
-  doc["gyroX"] = imu_.getGyroX();
-  doc["gyroY"] = imu_.getGyroY();
-  doc["gyroZ"] = imu_.getGyroZ();
-  doc["isGoal"] = pid_.isAtGoal();
-  doc["actualTime"] = pid_.getActualDt();
-  doc["cur_vel"] = PIDmeasurement();
+  // doc["voltage"] = AX_.getVoltage();
+  // doc["current"] = AX_.getCurrent(); 
+  // doc["pulsePWM"] = pulsePWM_;
+  // doc["pulseTime"] = pulseTime_;
+  // doc["inPulse"] = isInPulse_;
+  // doc["accelX"] = imu_.getAccelX();
+  // doc["accelY"] = imu_.getAccelY();
+  // doc["accelZ"] = imu_.getAccelZ();
+  // doc["gyroX"] = imu_.getGyroX();
+  // doc["gyroY"] = imu_.getGyroY();
+  // doc["gyroZ"] = imu_.getGyroZ();
+  // doc["isGoal"] = pid_pos_.isAtGoal();
+  //doc["actualTime"] = pid_pos_.getActualDt();
+  //doc["cur_vel"] = PIDmeasurement();
   doc["cur_pos"] = cur_pos;
   doc["cmd"] = commande;
 
   // Serialisation
   serializeJson(doc, Serial);
   // Envoit
-  Serial.println();
+   Serial.println();
   shouldSend_ = false;
 }
 
@@ -234,42 +340,62 @@ void readMsg(){
   }
   parse_msg = doc["setGoal"];
   if(!parse_msg.isNull()){
-    pid_.disable();
-    pid_.setGains(doc["setGoal"][0], doc["setGoal"][1], doc["setGoal"][2]);
-    pid_.setEpsilon(doc["setGoal"][3]);
-    pid_.setGoal(doc["setGoal"][4]);
-    pid_.enable();
+    pid_pos_.disable();
+    pid_pos_.setGains(doc["setGoal"][0], doc["setGoal"][1], doc["setGoal"][2]);
+    pid_pos_.setEpsilon(doc["setGoal"][3]);
+    pid_pos_.setGoal(doc["setGoal"][4]);
+    pid_pos_.enable();
+    
   }
 }
 
+  // void SetUp_PID(PID pid, double goal){
+
+  //   pid.disable();
+  //   pid.setGains(0.4, 0.04, 0.0004);
+  //   pid.setEpsilon(0.05);
+  //   pid.setGoal(goal);
+  //   pid.enable();
+  // Serial.println("SETUP");
+  // }
 
 // Fonctions pour le PID
 double PIDmeasurement(){
   // double vitesse; 
-  //double temps = (millis()-t1)/1000;
+  // double temps = (millis()-t1)/1000;
   float nbre_encodeur = AX_.readEncoder(0);
-  double distance = ((nbre_encodeur)/(2400))*PI*.15;
- 
+  double distance = ((nbre_encodeur)/(2400))*PI*.15; // metres
+   Serial.println("Distance: ");
+   Serial.println(distance);
   cur_pos = (((nbre_encodeur))/(2400))*PI*.15;
-
   return distance;
+
 }
 void PIDcommand(double cmd){
-
-  if(pid_.getGoal()>cur_pos){
-    AX_.setMotorPWM(0, 0.2);
-  }
-  else if(pid_.getGoal()<cur_pos){
-    AX_.setMotorPWM(0, -0.2);
-  }
-
-
+  GOAL = false;
+  commande = cmd;
+  AX_.setMotorPWM(0, cmd/6);
+// //OSCILLATION
+//   if(pid_pos_.getGoal()>cur_pos){
+//     AX_.setMotorPWM(0, 0.2);
+//   }
+//   else if(pid_pos_.getGoal()<cur_pos){
+//     AX_.setMotorPWM(0, -0.2);
+//    }
 }
+
+
 void PIDgoalReached(){
     //Serial.println("GoalReached");
-      AX_.setMotorPWM(0, 0);
+    AX_.setMotorPWM(0, 0);
+    GOAL = true;
 }
 
+
+
+
+
+/*
 //Fonction pour la gestion d'état
 void GestionEtat(Etat state){
   switch (state) {
@@ -280,8 +406,8 @@ void GestionEtat(Etat state){
       // if(AX_.readEncoder(0) <= 500){ //Vérifier la distance pour l'encodeur et pour le ID 
       //   AX_.setMotorPWM(0,-0.2);  //Réduire la vitesse
       // }
-      Serial.print("Limit Switch : ");
-      Serial.println(digitalRead(LIMITSWITCH));
+      // Serial.print("Limit Switch : ");
+      // Serial.println(digitalRead(LIMITSWITCH));
       if(digitalRead(LIMITSWITCH) == true){ // Reset la valeur de l'encodeur quand rendue au bout du rail
         AX_.resetEncoder(0);
         AX_.setMotorPWM(0,0);
@@ -340,19 +466,31 @@ int GetAngle(){
 double AGPIDmeasurement(){return 0.0;}
 void AGPIDcommand(double cmd){}
 void AGPIDgoalReached(){}
+/*
+bool oscille(){
+  int angle=0;
+  while(GetAngle()<= -30){
+        pid_pos_.setGoal(0.5);
+        pid_pos_.setGoal(0.1);
+  }
+  return false;}
+
+
 bool oscille(){
   int angle=0;
   angle=GetAngle();
-      pid_.setGoal(0.2);
-    while(PIDmeasurement()<=0.2)
+      pid_pos_.setGoal(0.5);
+    while(PIDmeasurement()<=0.5)
     {angle=GetAngle();
      if(angle <= -65)
      {return true;}
     }
-    pid_.setGoal(-0.2);
-    while(PIDmeasurement()>=-0.2)
+      pid_pos_.setGoal(0.1);
+    while(PIDmeasurement()>=0.1)
     {angle=GetAngle();
     if (angle<= -65)
       {return true;}
     }
   return false;}
+  */
+  
