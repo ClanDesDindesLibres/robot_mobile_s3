@@ -16,7 +16,7 @@
 
 #define MAGPIN          32          // Port numerique pour electroaimant
 #define POTPIN          A5          // Port analogique pour le potentiometre
-#define LIMITSWITCH     15          // Port numérique pour la limite switch
+#define LIMITSWITCH     42          // Port numérique pour la limite switch
 
 #define PASPARTOUR      64          // Nombre de pas par tour du moteur
 #define RAPPORTVITESSE  50          // Rapport de vitesse du moteur
@@ -120,7 +120,7 @@ void loop() {
     startPulse();
   }
 
-  //GestionEtat(PIetat);     //Gestiondes états pour le séquencement
+  GestionEtat(restart);     //Gestiondes états pour le séquencement
 
   // mise a jour des chronometres
   timerSendMsg_.update();
@@ -268,15 +268,17 @@ void GestionEtat(Etat state){
   switch (state) {
 
     case restart: // Retourne au début du rail
-      //while(digitalRead(LIMITSWITCH) != true) //Faire la gestion dans le PI
-        //Faite reculer le robot à une vitesse pas trop vite vers la fin
-        if(AX_.readEncoder(0) <= 500){ //Vérifier la distance pour l'encodeur et pour le ID 
-          AX_.setMotorPWM(0,0.3);  //Réduire la vitesse
-        }
-        if(digitalRead(LIMITSWITCH) == true){ // Reset la valeur de l'encodeur quand rendue au bout du rail
-          AX_.resetEncoder(0);
-        }
-      
+      AX_.setMotorPWM(0,-0.2);
+      //Faite reculer le robot à une vitesse pas trop vite vers la fin
+      // if(AX_.readEncoder(0) <= 500){ //Vérifier la distance pour l'encodeur et pour le ID 
+      //   AX_.setMotorPWM(0,-0.2);  //Réduire la vitesse
+      // }
+      Serial.print("Limit Switch : ");
+      Serial.println(digitalRead(LIMITSWITCH));
+      if(digitalRead(LIMITSWITCH) == true){ // Reset la valeur de l'encodeur quand rendue au bout du rail
+        AX_.resetEncoder(0);
+        AX_.setMotorPWM(0,0);
+      } 
     break;
 
     case approchePrise: // Approche au dessus du sapin
