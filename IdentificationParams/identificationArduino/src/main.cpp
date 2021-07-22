@@ -9,6 +9,10 @@
 #include <LibS3GRO.h>
 #include <ArduinoJson.h>
 #include <libExample.h> // Vos propres librairies
+
+
+
+
 /*------------------------------ Constantes ---------------------------------*/
 
 #define BAUD            115200      // Frequence de transmission serielle
@@ -30,6 +34,7 @@ MegaServo servo_;                   // objet servomoteur
 VexQuadEncoder vexEncoder_;         // objet encodeur vex
 IMU9DOF imu_;                       // objet imu
 PID pid_;                           // objet PID
+PID AGpid_;                         // objet PId angle
 MotorControl motor_; 
 LS7366Counter encoder_;
  
@@ -37,6 +42,7 @@ double t1;
 double d1; 
 double cur_pos;
 double commande = 0;
+
 volatile bool shouldSend_ = false;  // drapeau prêt à envoyer un message
 volatile bool shouldRead_ = false;  // drapeau prêt à lire un message
 volatile bool shouldPulse_ = false; // drapeau pour effectuer un pulse
@@ -61,7 +67,7 @@ void endPulse();
 void sendMsg(); 
 void readMsg();
 void serialEvent();
-int Angle();
+int GetAngle();
 bool oscille();
 void GestionEtat(Etat state);
 
@@ -69,6 +75,9 @@ void GestionEtat(Etat state);
 double PIDmeasurement();
 void PIDcommand(double cmd);
 void PIDgoalReached();
+double AGPIDmeasurement();
+void AGPIDcommand(double cmd);
+void AGPIDgoalReached();
 
 /*---------------------------- fonctions "Main" -----------------------------*/
 
@@ -127,7 +136,9 @@ void loop() {
   timerPulse_.update();
   
   // mise à jour du PID
+  GetAngle();
   pid_.run();
+
 }
 
 
@@ -319,46 +330,31 @@ void GestionEtat(Etat state){
   }
 
 }
-int Angle(){
+int GetAngle(){
   // capteur
-  int angle = 0;
+  int angle=0;
   int val = 0;
   val=analogRead(A5);
   angle = (val-560)*180/900;
-  Serial.println("Angle : " + String(angle));
-  /*Serial.print(val);
-  Serial.print("  ");
-  Serial.print(angle);
-  Serial.println(" deg");*/
+//Serial.println("Angle : " + String(angle));
   return angle;
 }
-
-bool oscille()
-{
+double AGPIDmeasurement(){return 0.0;}
+void AGPIDcommand(double cmd){}
+void AGPIDgoalReached(){}
+bool oscille(){
   int angle=0;
- for(int i = 0; i<20; i++){
-    motor_.setSpeed(0.4);
-    delay(20);
-    angle=Angle();
-    if(angle < -65){return true;}
-  }
-  for(int i = 0; i<10; i++){
-    motor_.setSpeed(0.0);
-    delay(20);
-    angle=Angle();
-    if(angle < -65){return true;}
-  }
-  for(int i = 0; i<20; i++){
-    motor_.setSpeed(-0.4);
-    delay(20);
-    angle=Angle();
-    if(angle < -65){return true;}
-  }
-  for(int i = 0; i<10; i++){
-    motor_.setSpeed(0.0);
-    delay(20);
-    angle=Angle();
-    if(angle < -65){return true;}
-  }  
-  return false;
-}
+  angle=GetAngle();
+      pid_.setGoal(0.2);
+    while(PIDmeasurement()<=0.2)
+    {angle=GetAngle();
+     if(angle <= -65)
+     {return true;}
+    }
+    pid_.setGoal(-0.2);
+    while(PIDmeasurement()>=-0.2)
+    {angle=GetAngle();
+    if (angle<= -65)
+      {return true;}
+    }
+  return false;}
