@@ -1,13 +1,22 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "MovingShape.h"
 
 MainWindow::MainWindow(int updateRate, QWidget *parent):
     QMainWindow(parent)
 {
     // Constructeur de la classe
     // Initialisation du UI
+
     ui = new Ui::MainWindow;
     ui->setupUi(this);
+
+    shape_ = new MovingShape(this);
+    //setCentralWidget(shape_);
+
+    auto layout = new QVBoxLayout();
+    layout->addWidget(shape_);
+    ui->animTab->setLayout(layout);
 
     // Initialisation du graphique
     ui->graph->setChart(&chart_);
@@ -25,7 +34,7 @@ MainWindow::MainWindow(int updateRate, QWidget *parent):
     // Recensement des ports
     portCensus();
 
-    // initialisation du timer
+    // inimovetialisation du timer
     updateTimer_.start();
 }
 
@@ -36,6 +45,7 @@ MainWindow::~MainWindow(){
       delete serialCom_;
     }
     delete ui;
+    delete shape_;
 }
 
 void MainWindow::closeEvent(QCloseEvent *event){
@@ -60,6 +70,9 @@ void MainWindow::receiveFromSerial(QString msg){
 
             // Affichage des messages Json
             ui->textBrowser->setText(buff.mid(2,buff.length()-4));
+//Json + moving shape
+            shape_->setPointX(jsonObj["time"].toInt());
+            shape_->setPointY(jsonObj["time"].toInt());
 
             // Affichage des donnees dans le graph
             if(jsonObj.contains(JsonKey_)){
@@ -70,7 +83,6 @@ void MainWindow::receiveFromSerial(QString msg){
                 chart_.addSeries(&series_);
                 chart_.createDefaultAxes();
             }
-
             // Fonction de reception de message (vide pour l'instant)
             msgReceived_ = msgBuffer_;
             onMessageReceived(msgReceived_);

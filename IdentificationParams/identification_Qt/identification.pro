@@ -27,12 +27,15 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
         serialprotocol.cpp \
-        csvwriter.cpp
+        csvwriter.cpp \
+    MovingShape.cpp
 
 HEADERS += \
         mainwindow.h \
         serialprotocol.h \
-        csvwriter.h
+        csvwriter.h \
+    MovingShape.h \
+    IMovable.h
 
 FORMS += \
         mainwindow.ui

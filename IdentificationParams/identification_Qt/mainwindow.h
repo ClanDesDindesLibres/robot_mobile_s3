@@ -9,6 +9,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QSerialPortInfo>
+#include "MovingShape.h"
 
 #include <QtCharts/QChartView>
 #include <QtCharts/QLineSeries>
@@ -71,6 +72,8 @@ private:
     QString JsonKey_;
     QLineSeries series_;
     QChart chart_;
+
+    MovingShape *shape_;
 
 
 protected:
