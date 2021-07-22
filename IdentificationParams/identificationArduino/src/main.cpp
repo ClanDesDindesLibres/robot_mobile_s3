@@ -9,6 +9,10 @@
 #include <LibS3GRO.h>
 #include <ArduinoJson.h>
 #include <libExample.h> // Vos propres librairies
+
+
+
+
 /*------------------------------ Constantes ---------------------------------*/
 
 #define BAUD            115200      // Frequence de transmission serielle
@@ -16,7 +20,7 @@
 
 #define MAGPIN          32          // Port numerique pour electroaimant
 #define POTPIN          A5          // Port analogique pour le potentiometre
-#define LIMITSWITCH     15          // Port numérique pour la limite switch
+#define LIMITSWITCH     42          // Port numérique pour la limite switch
 
 #define PASPARTOUR      64          // Nombre de pas par tour du moteur
 #define RAPPORTVITESSE  50          // Rapport de vitesse du moteur
@@ -30,6 +34,7 @@ MegaServo servo_;                   // objet servomoteur
 VexQuadEncoder vexEncoder_;         // objet encodeur vex
 IMU9DOF imu_;                       // objet imu
 PID pid_;                           // objet PID
+PID AGpid_;                         // objet PId angle
 MotorControl motor_; 
 LS7366Counter encoder_;
  
@@ -37,6 +42,7 @@ double t1;
 double d1; 
 double cur_pos;
 double commande = 0;
+
 volatile bool shouldSend_ = false;  // drapeau prêt à envoyer un message
 volatile bool shouldRead_ = false;  // drapeau prêt à lire un message
 volatile bool shouldPulse_ = false; // drapeau pour effectuer un pulse
@@ -61,7 +67,7 @@ void endPulse();
 void sendMsg(); 
 void readMsg();
 void serialEvent();
-int Angle();
+int GetAngle();
 bool oscille();
 void GestionEtat(Etat state);
 
@@ -69,6 +75,9 @@ void GestionEtat(Etat state);
 double PIDmeasurement();
 void PIDcommand(double cmd);
 void PIDgoalReached();
+double AGPIDmeasurement();
+void AGPIDcommand(double cmd);
+void AGPIDgoalReached();
 
 /*---------------------------- fonctions "Main" -----------------------------*/
 
@@ -120,14 +129,16 @@ void loop() {
     startPulse();
   }
 
-  //GestionEtat(PIetat);     //Gestiondes états pour le séquencement
+  GestionEtat(restart);     //Gestiondes états pour le séquencement
 
   // mise a jour des chronometres
   timerSendMsg_.update();
   timerPulse_.update();
   
   // mise à jour du PID
+  GetAngle();
   pid_.run();
+
 }
 
 
@@ -264,15 +275,17 @@ void GestionEtat(Etat state){
   switch (state) {
 
     case restart: // Retourne au début du rail
-      //while(digitalRead(LIMITSWITCH) != true) //Faire la gestion dans le PI
-        //Faite reculer le robot à une vitesse pas trop vite vers la fin
-        if(AX_.readEncoder(0) <= 500){ //Vérifier la distance pour l'encodeur et pour le ID 
-          AX_.setMotorPWM(0,0.3);  //Réduire la vitesse
-        }
-        if(digitalRead(LIMITSWITCH) == true){ // Reset la valeur de l'encodeur quand rendue au bout du rail
-          AX_.resetEncoder(0);
-        }
-      
+      AX_.setMotorPWM(0,-0.2);
+      //Faite reculer le robot à une vitesse pas trop vite vers la fin
+      // if(AX_.readEncoder(0) <= 500){ //Vérifier la distance pour l'encodeur et pour le ID 
+      //   AX_.setMotorPWM(0,-0.2);  //Réduire la vitesse
+      // }
+      Serial.print("Limit Switch : ");
+      Serial.println(digitalRead(LIMITSWITCH));
+      if(digitalRead(LIMITSWITCH) == true){ // Reset la valeur de l'encodeur quand rendue au bout du rail
+        AX_.resetEncoder(0);
+        AX_.setMotorPWM(0,0);
+      } 
     break;
 
     case approchePrise: // Approche au dessus du sapin
@@ -315,46 +328,31 @@ void GestionEtat(Etat state){
   }
 
 }
-int Angle(){
+int GetAngle(){
   // capteur
-  int angle = 0;
+  int angle=0;
   int val = 0;
   val=analogRead(A5);
   angle = (val-560)*180/900;
-  Serial.println("Angle : " + String(angle));
-  /*Serial.print(val);
-  Serial.print("  ");
-  Serial.print(angle);
-  Serial.println(" deg");*/
+//Serial.println("Angle : " + String(angle));
   return angle;
 }
-
-bool oscille()
-{
+double AGPIDmeasurement(){return 0.0;}
+void AGPIDcommand(double cmd){}
+void AGPIDgoalReached(){}
+bool oscille(){
   int angle=0;
- for(int i = 0; i<20; i++){
-    motor_.setSpeed(0.4);
-    delay(20);
-    angle=Angle();
-    if(angle < -65){return true;}
-  }
-  for(int i = 0; i<10; i++){
-    motor_.setSpeed(0.0);
-    delay(20);
-    angle=Angle();
-    if(angle < -65){return true;}
-  }
-  for(int i = 0; i<20; i++){
-    motor_.setSpeed(-0.4);
-    delay(20);
-    angle=Angle();
-    if(angle < -65){return true;}
-  }
-  for(int i = 0; i<10; i++){
-    motor_.setSpeed(0.0);
-    delay(20);
-    angle=Angle();
-    if(angle < -65){return true;}
-  }  
-  return false;
-}
+  angle=GetAngle();
+      pid_.setGoal(0.2);
+    while(PIDmeasurement()<=0.2)
+    {angle=GetAngle();
+     if(angle <= -65)
+     {return true;}
+    }
+    pid_.setGoal(-0.2);
+    while(PIDmeasurement()>=-0.2)
+    {angle=GetAngle();
+    if (angle<= -65)
+      {return true;}
+    }
+  return false;}
