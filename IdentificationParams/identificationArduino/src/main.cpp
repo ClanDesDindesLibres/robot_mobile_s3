@@ -44,6 +44,7 @@ double t1;
 double d1; 
 double cur_pos;
 double commande = 0;
+double angleGlob = 0;
 
 volatile bool shouldSend_ = false;  // drapeau prêt à envoyer un message
 volatile bool shouldRead_ = false;  // drapeau prêt à lire un message
@@ -161,6 +162,7 @@ void loop() {
   timerPulse_.update();
   
   // mise à jour du PID
+<<<<<<< HEAD
   pid_pos_.run();
 
 //Fonction pour la gestion d'état
@@ -244,6 +246,11 @@ void loop() {
     break;
 */
   }
+=======
+  GetAngle();
+  pid_.run();
+  AGpid_.run();
+>>>>>>> 5812513c1cd704c9ef0e63513a1e89a026a2dedf
 
 }
 
@@ -463,6 +470,7 @@ int GetAngle(){
 //Serial.println("Angle : " + String(angle));
   return angle;
 }
+<<<<<<< HEAD
 double AGPIDmeasurement(){return 0.0;}
 void AGPIDcommand(double cmd){}
 void AGPIDgoalReached(){}
@@ -476,6 +484,24 @@ bool oscille(){
   return false;}
 
 
+=======
+double AGPIDmeasurement(){
+  double angle = GetAngle();
+  angleGlob = angle;
+  return angle;
+}
+void AGPIDcommand(double cmd){
+  if(AGpid_.getGoal()>angleGlob){
+    AX_.setMotorPWM(0, -0.2);
+  }
+  else if(AGpid_.getGoal()<angleGlob){
+    AX_.setMotorPWM(0, 0.2);
+  }
+}
+void AGPIDgoalReached(){
+  AX_.setMotorPWM(0, 0);
+}
+>>>>>>> 5812513c1cd704c9ef0e63513a1e89a026a2dedf
 bool oscille(){
   int angle=0;
   angle=GetAngle();
