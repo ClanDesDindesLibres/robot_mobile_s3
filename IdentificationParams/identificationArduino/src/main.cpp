@@ -234,33 +234,29 @@ void readMsg(){
 
 // Fonctions pour le PID
 double PIDmeasurement(){
-  double vitesse; 
-  double temps = (millis()-t1)/1000;
-  double distance = (((AX_.readEncoder(0))-d1)/(2400))*PI*.15;
-  /*Serial.println("distance");
-  Serial.println(distance);
-  Serial.println("temps initial: ");
-  Serial.println(t1/1000);
-  Serial.println("temps final: ");
-  Serial.println(millis()/1000);
-  Serial.println("temps de l'intervalle :");
-  Serial.println(temps); 
-  Serial.println("vitesse : ");*/
-  vitesse = distance/temps;
-  //ÉCRASE
-  t1= millis();
-  d1 = AX_.readEncoder(0);
-  cur_pos = (((AX_.readEncoder(0)))/(2400))*PI*.15;
-  return vitesse;
+  // double vitesse; 
+  //double temps = (millis()-t1)/1000;
+  float nbre_encodeur = AX_.readEncoder(0);
+  double distance = ((nbre_encodeur)/(2400))*PI*.15;
+ 
+  cur_pos = (((nbre_encodeur))/(2400))*PI*.15;
+
+  return distance;
 }
 void PIDcommand(double cmd){
-  static double memoireVitesse = 0;
-  memoireVitesse += cmd;
-  AX_.setMotorPWM(0, memoireVitesse);
-  commande = cmd;
+
+  if(pid_.getGoal()>cur_pos){
+    AX_.setMotorPWM(0, 0.2);
+  }
+  else if(pid_.getGoal()<cur_pos){
+    AX_.setMotorPWM(0, -0.2);
+  }
+
+
 }
 void PIDgoalReached(){
-  // To do
+    //Serial.println("GoalReached");
+      AX_.setMotorPWM(0, 0);
 }
 
 //Fonction pour la gestion d'état
