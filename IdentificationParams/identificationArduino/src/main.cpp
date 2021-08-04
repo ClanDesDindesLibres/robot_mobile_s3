@@ -108,7 +108,7 @@ void AGPIDgoalReached();
 
 float posSapInit = 0;
 float hauteurSapin = 0;
-bool START = false;
+double START = 0;
 float posInit;
 int angleDep;
 float delais;
@@ -136,8 +136,8 @@ void setup() {
   State = restart;
 
   //Pendule paramètres d'oscillation
-  Serial.print("T = ");Serial.println(T);
-  Serial.print("w = ");Serial.println(w); 
+  //Serial.print("T = ");Serial.println(T);
+  //Serial.print("w = ");Serial.println(w); 
 
   //Initialisation des pins
   pinMode(MAGPIN,OUTPUT);      //Initialisation de la pin de l'électroaimant en sortie
@@ -147,7 +147,7 @@ void setup() {
   // Chronometre envoie message
   timerSendMsg_.setDelay(UPDATE_PERIODE);
   timerSendMsg_.setCallback(timerCallback);
-  //timerSendMsg_.enable();
+  timerSendMsg_.enable();
 
   // Chronometre duration pulse
   timerPulse_.setCallback(endPulse);
@@ -180,59 +180,57 @@ void setup() {
 /* Boucle principale (infinie)*/
 void loop() {
 
-
-
   if(shouldRead_){
     readMsg();
   }
 
-  while(!START);
+      if(shouldSend_){
+        sendMsg();
+      }
+      if(shouldPulse_){
+        startPulse();
+      }
+      // mise a jour des chronometres
+      timerSendMsg_.update();
+      timerPulse_.update();
 
-  if(shouldSend_){
-    sendMsg();
-  }
-  if(shouldPulse_){
-    startPulse();
-  }
-  // mise a jour des chronometres
-  timerSendMsg_.update();
-  timerPulse_.update();
+      //Calcul position initiale
 
-  //Calcul position initiale
-
-  LANCER = false;
-
-  //Selon distance
-  if(posSapInit>=0.8 && posSapInit<0.9)
+      LANCER = false;
+if(START==1)
   {
-    delais = 550;
+      //Selon distance
+      if(posSapInit>=0.8 && posSapInit<0.9)
+      {
+        delais = 550;
+      }
+      else{
+        delais = 100;
+      }
+
+      //Selon hauteur
+      if(hauteurSapin<=0.51)
+      {posInit = posSapInit-0.3;
+      angleDep = -55;}
+
+      else if(hauteurSapin>0.51 && hauteurSapin<=0.55)
+      {posInit = posSapInit-0.4;
+      angleDep = -65;
+      delais = delais + 25;}
+
+      else if(hauteurSapin>0.55)
+      {posInit = posSapInit-0.45;
+      angleDep = -70;
+      delais = delais + 30;}
+
+      // mise à jour du PI
+      pid_pos_.run();
+      pid_angle_.run();
+
+
+      //Fonction pour la gestion d'état
+      GestionEtat();
   }
-  else{
-    delais = 100;
-  }
-
-  //Selon hauteur
-  if(hauteurSapin<=0.51)
-  {posInit = posSapInit-0.3;
-  angleDep = -55;}
-
-  else if(hauteurSapin>0.51 && hauteurSapin<=0.55)
-  {posInit = posSapInit-0.4;
-  angleDep = -65;
-  delais = delais + 25;}
-
-  else if(hauteurSapin>0.55)
-  {posInit = posSapInit-0.45;
-  angleDep = -70;
-  delais = delais + 30;}
-
-  // mise à jour du PI
-  pid_pos_.run();
-  pid_angle_.run();
-
-
-  //Fonction pour la gestion d'état
-  GestionEtat();
 
 }
 
@@ -328,19 +326,19 @@ void readMsg(){
      shouldPulse_ = doc["pulse"];
   }
 
-  parse_msg = doc["possapin"];
+  parse_msg = doc["setGoal"];
   if(!parse_msg.isNull()){
-     posSapInit = doc["pulse"];
+     posSapInit = doc["setGoal"][8];
   }
 
-  parse_msg = doc["hausapin"];
+  parse_msg = doc["setGoal"];
   if(!parse_msg.isNull()){
-     hauteurSapin = doc["pulse"];
+     hauteurSapin = doc["setGoal"][6];
   }
 
-  parse_msg = doc["start"];
+  parse_msg = doc["setGoal"];
   if(!parse_msg.isNull()){
-     START = doc["start"];
+     START = doc["setGoal"][7];
   }
 
   parse_msg = doc["setGoal"];
