@@ -221,6 +221,7 @@ int MovingShape::getEllipseWidth() const
 /**
  * @brief MovingShape::getEllipsePen
  * @return
+//Exemple de moving shape
  */
 int MovingShape::getEllipsePen() const
 {

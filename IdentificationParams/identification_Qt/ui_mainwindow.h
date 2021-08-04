@@ -48,6 +48,14 @@ public:
     QLabel *label;
     QFrame *line;
     QLineEdit *lineEdit_Kp;
+
+    QLabel *label_12;
+    QLabel *label_13;
+    QLabel *label_14;
+    QLineEdit *lineEdit_PosSapin;
+    QLineEdit *lineEdit_HauSapin;
+    QLineEdit *lineEdit_Start;
+
     QLineEdit *lineEdit_Kd;
     QPushButton *pulseButton;
     QLabel *label_2;
@@ -150,6 +158,43 @@ public:
 
         gridLayout->addWidget(lineEdit_Kp, 7, 5, 1, 1);
 
+
+
+
+
+        label_12 = new QLabel(centralWidget);
+        label_12->setObjectName(QStringLiteral("label_12"));
+
+        gridLayout->addWidget(label_12, 11, 4, 1, 1);
+
+        label_13 = new QLabel(centralWidget);
+        label_13->setObjectName(QStringLiteral("label_13"));
+
+        gridLayout->addWidget(label_13, 12, 4, 1, 1);
+
+        label_14 = new QLabel(centralWidget);
+        label_14->setObjectName(QStringLiteral("label_14"));
+
+        gridLayout->addWidget(label_14, 13, 4, 1, 1);
+
+        lineEdit_PosSapin = new QLineEdit(centralWidget);
+        lineEdit_PosSapin->setObjectName(QStringLiteral("lineEdit_PosSapin"));
+
+        gridLayout->addWidget(lineEdit_PosSapin, 12, 5, 1, 1);
+
+        lineEdit_HauSapin = new QLineEdit(centralWidget);
+        lineEdit_HauSapin->setObjectName(QStringLiteral("lineEdit_HauSapin"));
+
+        gridLayout->addWidget(lineEdit_HauSapin, 13, 5, 1, 1);
+
+        lineEdit_Start = new QLineEdit(centralWidget);
+        lineEdit_Start->setObjectName(QStringLiteral("lineEdit_Start"));
+
+        gridLayout->addWidget(lineEdit_Start, 11, 5, 1, 1);
+
+
+
+
         lineEdit_Kd = new QLineEdit(centralWidget);
         lineEdit_Kd->setObjectName(QStringLiteral("lineEdit_Kd"));
 
@@ -251,6 +296,9 @@ public:
         MainWindow->setWindowTitle(QApplication::translate("MainWindow", "Interface Identification", nullptr));
         JsonKey->setText(QApplication::translate("MainWindow", "potVex", nullptr));
         label_11->setText(QApplication::translate("MainWindow", "Seuil", nullptr));
+        label_12->setText(QApplication::translate("MainWindow", "Position du sapin", nullptr));
+        label_13->setText(QApplication::translate("MainWindow", "Hauteur du sapin", nullptr));
+        label_14->setText(QApplication::translate("MainWindow", "start/stop", nullptr));
         label_10->setText(QApplication::translate("MainWindow", "Valeur Kd", nullptr));
         label_7->setText(QApplication::translate("MainWindow", "Val. desiree", nullptr));
         animTab->setTabText(animTab->indexOf(tab), QApplication::translate("MainWindow", "Graphiques Json", nullptr));

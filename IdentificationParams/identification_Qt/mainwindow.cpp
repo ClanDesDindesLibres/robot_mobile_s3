@@ -10,13 +10,13 @@ MainWindow::MainWindow(int updateRate, QWidget *parent):
 
     ui = new Ui::MainWindow;
     ui->setupUi(this);
-
+    
     shape_ = new MovingShape(this);
     //setCentralWidget(shape_);
 
     auto layout = new QVBoxLayout();
     layout->addWidget(shape_);
-    ui->animTab->setLayout(layout);
+    ui->tab_2->setLayout(layout);
 
     // Initialisation du graphique
     ui->graph->setChart(&chart_);
@@ -71,8 +71,9 @@ void MainWindow::receiveFromSerial(QString msg){
             // Affichage des messages Json
             ui->textBrowser->setText(buff.mid(2,buff.length()-4));
 //Json + moving shape
-            shape_->setPointX(jsonObj["time"].toInt());
-            shape_->setPointY(jsonObj["time"].toInt());
+            shape_->setPointX(100/jsonObj["cur_pos"].toDouble());
+
+           // shape_->setPointY(jsonObj["time"].toInt());
 
             // Affichage des donnees dans le graph
             if(jsonObj.contains(JsonKey_)){
@@ -162,13 +163,19 @@ void MainWindow::sendPID(){
     double Ki = ui->lineEdit_Ki->text().toDouble();
     double Kd = ui->lineEdit_Kd->text().toDouble();
     double thresh = ui->lineEdit_Thresh->text().toDouble();
+    double possapin = ui->lineEdit_PosSapin->text().toDouble();
+    double hausapin = ui->lineEdit_HauSapin->text().toDouble();
+    double startstop= ui->lineEdit_Start->text().toDouble();
     // pour minimiser le nombre de decimales( QString::number)
 
     QJsonArray array = { QString::number(Kp, 'f', 2),
                          QString::number(Ki, 'f', 2),
                          QString::number(Kd, 'f', 2),
                          QString::number(thresh, 'f', 2),
-                         QString::number(goal, 'f', 2)
+                         QString::number(goal, 'f', 2),
+                         QString::number(possapin, 'f', 2),
+                         QString::number(hausapin, 'f', 2),
+                         QString::number(startstop, 'f', 2)
                        };
     QJsonObject jsonObject
     {
