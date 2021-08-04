@@ -44,7 +44,7 @@ LS7366Counter encoder_;
 double t1;
 double d1; 
 double cur_pos;
-double a1;
+double anglePrec;
 
 //Variables 
 double commande = 0;
@@ -54,7 +54,7 @@ bool comment = true;
 int i = 0;
 
 //Oscillation du pendule
-float T = (2*PI)*sqrt(0.37/9.81);
+float T = (2*PI)*sqrt(0.42/9.81);//.37
 //float T = 1;
 float w = (2*PI)/T;
 float Amp = -0.5;
@@ -112,7 +112,7 @@ void setup() {
   vexEncoder_.init(2,3);            // initialisation de l'encodeur VEX
   t1 =0;
   d1= AX_.readEncoder(0);
-  a1=8;
+  anglePrec = 0;
   // attache de l'interruption pour encodeur vex
   //attachInterrupt(vexEncoder_.getPinInt(), []{vexEncoder_.isr();}, FALLING);
   
@@ -340,6 +340,7 @@ void GestionEtat(){
 
     case restart: // Retourne au début du rail
       if (comment){Serial.println("RESTART"); comment = false;}
+      Serial.println(GetAngle());
       //Diminution de vitesse vers le début du rail
       if(AX_.readEncoder(0) <= 500){ //Vérifier la distance pour l'encodeur et pour le ID 
         AX_.setMotorPWM(0,-0.15);
@@ -368,7 +369,7 @@ void GestionEtat(){
         comment = false;
       }
       //Valeur de distance pour la prise du sapin
-      pid_pos_.setGoal(0.3);
+      pid_pos_.setGoal(0.25);
       //Serial.println("PID ACTIF");
       if (pid_pos_.isAtGoal()){State++;comment = true;}
     break;
@@ -394,11 +395,12 @@ void GestionEtat(){
       v = Amp*sin((w*t));
       AX_.setMotorPWM(0,v);
       //Serial.print("Vitesse: "); Serial.println(v);
-      if (v < 0 && GetAngle() <= -50){
-        while(GetAngle() >= 60);//Attend que le pendule reparte vers l'avant pour partir
+      if (v < 0 && GetAngle() <= -55){//50
+        while(GetAngle() >= 40);//60//Attend que le pendule reparte vers l'avant pour partir
         AX_.setMotorPWM(0,0.65);//Fait partir le robot vers le dépot// problème si pas l'à
-        delay(1000);
+        delay(875);//875
         AX_.setMotorPWM(0,0);
+        anglePrec = GetAngle();
         osci = true;
         comment = true;
         State++;
@@ -423,16 +425,14 @@ void GestionEtat(){
 
     //Permet de stabiliser le pendule // à faire
     case stabilisation:
-      if (comment){Serial.println("STABILISATION"); comment = false;}
-      delay(3000);
-      //v = 0.2*sin(GetAngle());
-      //AX_.setMotorPWM(0,v);
-      //comment = true;
-      State++;
+      if (comment){Serial.println("STABILISATION");pid_pos_.enable(); comment = false;}
+      pid_pos_.setGoal(1);
+      if (pid_pos_.isAtGoal()){State++;comment = true;};
     break;
 
     case depot:
       if (comment){Serial.println("DEPOT"); comment = false;}
+      delay(1000);
       digitalWrite(MAGPIN,LOW);
       delay(500);//Vérifier le délai de relachement du sapin
     break;
@@ -452,13 +452,14 @@ int GetAngle(){
 
 double AGPIDmeasurement(){
   double vitesse;
-  int erreur_angle =8; 
+  double angleActu = GetAngle();
+  //int erreur_angle =8; 
   double temps = (millis()-t1)/1000;
-  double angle = GetAngle()+erreur_angle-a1;
-  vitesse = angle/temps;
+  double dangle = angleActu-anglePrec;
+  vitesse = dangle/temps;
   //ÉCRASE
   t1= millis();
-  a1 = GetAngle()+erreur_angle;
+  anglePrec = angleActu;
   return vitesse;
 
 
@@ -472,13 +473,14 @@ double AGPIDmeasurement(){
 }
 void AGPIDcommand(double cmd){
    static double memoireVitesse = 0;
-  memoireVitesse += cmd;
+  memoireVitesse += cmd/2000;
+  Serial.println(cmd);
  
- if (memoireVitesse>=0.2){
-  memoireVitesse=0.2;
+ if (memoireVitesse>=0.3){
+  memoireVitesse=0.3;
 }
-else if(memoireVitesse<=-0.2){
-  memoireVitesse=-0.2;
+else if(memoireVitesse<=-0.3){
+  memoireVitesse=-0.3;
 }
   AX_.setMotorPWM(0, memoireVitesse);
   commande = cmd;
